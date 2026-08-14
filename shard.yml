@@ -1,0 +1,13 @@
+name: tom
+version: 0.1.0
+
+authors:
+  - Zohir Tamda <zohir@area17.com>
+
+targets:
+  tom:
+    main: src/tom.cr
+
+crystal: '>= 1.21.0'
+
+license: MIT

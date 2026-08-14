@@ -1,0 +1,6 @@
+require "spec"
+require "../src/tom/font"
+require "../src/tom/fonts/wide"
+require "../src/tom/fonts/compact"
+require "../src/tom/fonts/mini"
+require "../src/tom/cli"
