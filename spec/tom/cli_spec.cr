@@ -1,23 +1,23 @@
 require "../spec_helper"
 
-describe Tom::Font do
-  it "renders a word with the right number of rows for each font" do
-    Tom::Fonts::Wide.render("HI").split('\n').size.should eq(Tom::Fonts::Wide::HEIGHT)
-    Tom::Fonts::Compact.render("HI").split('\n').size.should eq(Tom::Fonts::Compact::HEIGHT)
-    Tom::Fonts::Mini.render("HI").split('\n').size.should eq(Tom::Fonts::Mini::HEIGHT)
-  end
+describe Tom::CLI do
+  describe ".parse_variants" do
+    it "parses a single override" do
+      Tom::CLI.parse_variants("S:2").should eq({'S' => 2})
+    end
 
-  it "renders spaces as blank columns" do
-    with_space = Tom::Fonts::Wide.render("A B")
-    without_space = Tom::Fonts::Wide.render("AB")
-    with_space.should_not eq(without_space)
-  end
+    it "parses a comma-separated list" do
+      Tom::CLI.parse_variants("A:2,G:4").should eq({'A' => 2, 'G' => 4})
+    end
 
-  it "silently skips characters unsupported by the chosen font" do
-    Tom::Fonts::Compact.render("A1B").should eq(Tom::Fonts::Compact.render("AB"))
-  end
+    it "upcases the letter" do
+      Tom::CLI.parse_variants("s:2").should eq({'S' => 2})
+    end
 
-  it "is case-insensitive" do
-    Tom::Fonts::Wide.render("hi").should eq(Tom::Fonts::Wide.render("HI"))
+    it "rejects malformed values" do
+      ["S", "S:", ":2", "SS:2", "S:x", ""].each do |spec|
+        expect_raises(ArgumentError) { Tom::CLI.parse_variants(spec) }
+      end
+    end
   end
 end
