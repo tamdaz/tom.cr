@@ -45,7 +45,7 @@ tom -s octant HELLO
 
 ![result hello braille](img/hello-braille.png)
 
-Characters that use braille characters might depend on your terminal. Some of them might not display as well.
+The display of Braille characters may vary depending on your device. Some of them may not display correctly.
 
 ## Development
 
