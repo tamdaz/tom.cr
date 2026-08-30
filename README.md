@@ -15,11 +15,6 @@ shards install
 ## Usage
 
 ```
-𜴳𜴳▆𜴳𜴳 𜷋𜵭𜴳𜶨𜶻 ▆𜺣 𜺠▆       𜷋𜵭𜴳𜶨𜶻 ▆𜴳𜴳𜶨𜶻
-  █   █   █ █𜴦▆𜴗█       █   🮂 █▂▂𜷋𜵰
-  █   █   █ █   █       █   ▂ █𜴅𜶫𜶾
-  🮅   𜴅𜴴𜴳𜴵𜴂 🮅   🮅       𜴅𜴴𜴳𜴵𜴂 🮅  𜴅𜴴
-
 Usage: tom [options] TEXT
     -s NAME, --style=NAME            Block characters to draw with: half, octant, braille (default: half)
     -v LETTER:N,..., --variant=LETTER:N,...
@@ -31,15 +26,7 @@ Usage: tom [options] TEXT
 tom HELLO
 ```
 
-```
-██      ██ ██████████ ██         ██          ▄██████▄ 
-██      ██ ██         ██         ██         ██▀    ▀██
-██      ██ ██         ██         ██         ██      ██
-██████████ ████████   ██         ██         ██      ██
-██      ██ ██         ██         ██         ██      ██
-██      ██ ██         ██         ██         ██▄    ▄██
-██      ██ ██████████ ██████████ ██████████  ▀██████▀ 
-```
+![result hello](img/hello-normal.png)
 
 Three block styles are available via `-s`, all built from the same glyph data
 so letter spacing stays the same width on screen whatever style you pick:
@@ -54,19 +41,9 @@ so letter spacing stays the same width on screen whatever style you pick:
 tom -s octant HELLO
 ```
 
-```
-▆   ▆ ▆𜴳𜴳𜴳𜴳 ▆     ▆     𜷋𜵭𜴳𜶨𜶻
-█▂▂▂█ █▂▂▂  █     █     █   █
-█🮂🮂🮂█ █🮂🮂🮂  █     █     █   █
-🮅   🮅 🮅𜴳𜴳𜴳𜴳 🮅𜴳𜴳𜴳𜴳 🮅𜴳𜴳𜴳𜴳 𜴅𜴴𜴳𜴵𜴂
-```
+![result hello octant](img/hello-octant.png)
 
-```
-⣶⠀⠀⠀⣶⠀⣶⠶⠶⠶⠶⠀⣶⠀⠀⠀⠀⠀⣶⠀⠀⠀⠀⠀⣠⡶⠶⢶⣄
-⣿⣀⣀⣀⣿⠀⣿⣀⣀⣀⠀⠀⣿⠀⠀⠀⠀⠀⣿⠀⠀⠀⠀⠀⣿⠀⠀⠀⣿
-⣿⠉⠉⠉⣿⠀⣿⠉⠉⠉⠀⠀⣿⠀⠀⠀⠀⠀⣿⠀⠀⠀⠀⠀⣿⠀⠀⠀⣿
-⠿⠀⠀⠀⠿⠀⠿⠶⠶⠶⠶⠀⠿⠶⠶⠶⠶⠀⠿⠶⠶⠶⠶⠀⠙⠷⠶⠾⠋
-```
+![result hello braille](img/hello-braille.png)
 
 Characters that use braille characters might depend on your terminal. Some of them might not display as well.
 
