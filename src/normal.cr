@@ -9,7 +9,7 @@ module Tom::Fonts::Normal
   VARIANTS = begin
     variants = Tom::Variants.new
 
-    {% for code in (33..127).to_a + [9608] %}
+    {% for code in (33..126).to_a + [9608] %}
       char_variants = Hash(Int32, Tom::Glyph).new
 
       {% for n in (1..9) %}

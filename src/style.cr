@@ -146,10 +146,10 @@ abstract struct Tom::Style
 
     # Bit weight of each pixel, indexed by the row-major mask bit it comes from.
     DOTS = StaticArray[
-      0x01, 0x08,
-      0x02, 0x10,
-      0x04, 0x20,
-      0x40, 0x80,
+      0x01, 0x08, # ⠁ ⠈
+      0x02, 0x10, # ⠂ ⠐
+      0x04, 0x20, # ⠄ ⠠
+      0x40, 0x80, # ⡀ ⢀
     ]
 
     def cell(bitmap : Bitmap, x : Int32, y : Int32) : Char

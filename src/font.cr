@@ -22,10 +22,7 @@ module Tom::Font
   # Spacing is rounded up to a whole number of cells: a glyph starting halfway
   # through a cell would be sampled across two of them and come out distorted.
   def self.render(
-    text : String,
-    variants : Variants,
-    height : Int32,
-    blank_width : Int32,
+    text : String, variants : Variants, height : Int32, blank_width : Int32,
     variant_overrides : Hash(Char, Int32) = {} of Char => Int32,
     style : Style = Style::DEFAULT,
   ) : String

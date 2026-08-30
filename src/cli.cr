@@ -20,9 +20,9 @@ module Tom::CLI
   end
 
   # The banner shown above --help and usage errors: the project name rendered
-  # in the block-octant style, standing in for a "." the font has no glyph for.
+  # in the block-octant style.
   def self.logo : String
-    Fonts::Normal.render("TOM CR", style: Style["octant"])
+    Fonts::Normal.render("TOM.CR", style: Style["octant"])
   end
 
   def self.run(argv : Array(String)) : Nil
