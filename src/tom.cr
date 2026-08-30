@@ -1,4 +1,4 @@
-require "./tom/cli"
+require "./cli"
 
 module Tom
   VERSION = {{ `shards version`.stringify }}
