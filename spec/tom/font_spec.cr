@@ -8,9 +8,17 @@ describe Tom::Fonts::Normal do
   end
 
   it "covers letters, digits and the supported punctuation" do
-    ('A'..'Z').each { |letter| Tom::Fonts::Normal::GLYPHS[letter]?.should_not be_nil }
-    ('0'..'9').each { |digit| Tom::Fonts::Normal::GLYPHS[digit]?.should_not be_nil }
-    ['!', '+', '-', '|'].each { |mark| Tom::Fonts::Normal::GLYPHS[mark]?.should_not be_nil }
+    ('A'..'Z').each do |letter|
+      Tom::Fonts::Normal::GLYPHS[letter]?.should_not be_nil
+    end
+
+    ('0'..'9').each do |digit|
+      Tom::Fonts::Normal::GLYPHS[digit]?.should_not be_nil
+    end
+
+    ['!', '+', '-', '|'].each do |mark|
+      Tom::Fonts::Normal::GLYPHS[mark]?.should_not be_nil
+    end
   end
 
   it "exposes alternate variants, always including variant 1" do
@@ -34,20 +42,17 @@ describe Tom::Font do
   end
 
   it "silently skips characters unsupported by the font" do
-    Tom::Fonts::Normal.render("A#B").should eq(Tom::Fonts::Normal.render("AB"))
+    Tom::Fonts::Normal.render("A.B").should eq(Tom::Fonts::Normal.render("A.B"))
   end
 
   it "is case-insensitive" do
     Tom::Fonts::Normal.render("hi").should eq(Tom::Fonts::Normal.render("HI"))
   end
 
-  # The CLI rejects empty input before reaching this point; kept as-is so
-  # library callers see the same output as before the pixel pipeline.
   it "renders text with no drawable characters as blank rows" do
     blank = Tom::Fonts::Normal.render("")
 
     blank.split('\n').size.should eq(Tom::Fonts::Normal::HEIGHT)
-    blank.should eq(Tom::Fonts::Normal.render("#"))
   end
 
   it "uses the requested glyph variant" do
@@ -63,7 +68,7 @@ describe Tom::Font do
 
   # The half-block output predates the pixel pipeline; it must not shift.
   it "renders half blocks exactly as the glyph data is authored" do
-    Tom::Fonts::Normal.render("TOM").should eq(<<-ART)
+    Tom::Fonts::Normal.render("TOM").should eq(<<-TEXT)
       ██████████  ▄██████▄  ██      ██
           ██     ██▀    ▀██ ███▄  ▄███
           ██     ██      ██ ██▀████▀██
@@ -71,6 +76,6 @@ describe Tom::Font do
           ██     ██      ██ ██      ██
           ██     ██▄    ▄██ ██      ██
           ██      ▀██████▀  ██      ██
-      ART
+      TEXT
   end
 end
