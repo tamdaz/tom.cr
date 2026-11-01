@@ -57,7 +57,7 @@ jobs:
             static: false
             container: null
           - name: darwin-arm64
-            os: macos-14
+            os: macos-15
             arch: arm64
             static: false
             container: null
@@ -66,7 +66,7 @@ jobs:
     container: ${{ matrix.container }}
     steps:
       - name: Download source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install Crystal
         if: matrix.container == null
