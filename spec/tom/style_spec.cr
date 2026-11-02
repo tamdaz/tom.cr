@@ -111,8 +111,8 @@ describe Tom::Style do
 
       ["octant", "braille"].each do |name|
         rendered = Tom::Fonts::Normal.render("HI", style: Tom::Style[name])
-        # Letter spacing is rounded up to a whole cell, so a 2px-wide cell
-        # buys one extra pixel of gap per inter-glyph boundary.
+        # The 2 px letter spacing is exactly one 2 px-wide cell, so the finer
+        # styles use the same inter-glyph gap.
         rendered.split('\n').first.size.should eq((pixels + 1) // 2)
       end
     end
