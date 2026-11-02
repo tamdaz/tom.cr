@@ -29,6 +29,8 @@ jobs:
         run: shards install
       - name: Run tests
         run: crystal spec --order=random
+      - name: Test accent manifest
+        run: python3 tools/test_accents.py
       - name: Build
         run: shards build
       - name: Check formatting
