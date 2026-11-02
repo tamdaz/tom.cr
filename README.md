@@ -54,7 +54,7 @@ crystal spec
 shards build tom
 ```
 
-Glyphs live one ASCII code per directory, as half-block art: `src/data/<code>/<variant>.txt` _(e.g. `src/data/65/1.txt` for `A`, variant 1)_. Each file is a 10x7 grid drawn with `▀`, `▄`, `█` and spaces — octant and braille output are derived from this at render time.
+Glyphs live one code point per directory, as half-block art: `src/data/<code>/<variant>.txt` _(e.g. `src/data/65/1.txt` for `A`, variant 1)_. Each file is a 10x7 grid drawn with `▀`, `▄`, `█` and spaces — octant and braille output are derived from this at render time.
 
 ## Contributing
 
