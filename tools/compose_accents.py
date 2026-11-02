@@ -7,11 +7,12 @@ of ASCII 94 (`^`), ASCII 96 (`` ` ``), U+00B4 (`´`) or U+00A8 (`¨`); the cedil
 uses the last two rows of U+00B8 (`¸`) and sits below the letter.
 
 Every variant of a base letter produces the matching variant of its accented
-form (A variant 2 -> Â variant 2), so accents follow the letter designs. When a
-variant's top two rows already match the requested accent, they are reused as-is.
-For any other accent, the new accent is added above the complete variant: some
-letter designs start with rows that look like an accent (A3, O2), but those rows
-belong to the letter and are never cut. The results are written to
+form (A variant 2 -> Â variant 2), so accents follow the letter designs. A
+variant already stored without an extra accent (7 rows) keeps that design, even
+if its top rows happen to resemble the requested accent; otherwise the new
+accent is added above the complete variant. Some letter designs start with rows
+that look like an accent (A3, O2), but those rows belong to the letter unless
+the stored variant deliberately reuses them. The results are written to
 `src/data/<codepoint>/<variant>.txt`, next to the hand-drawn glyph art.
 Lowercase forms are not written: the renderer uppercases its input, and the TTF
 build maps each accented capital to its lowercase counterpart.
@@ -117,13 +118,23 @@ def existing_above_accent(letter_rows):
     return None
 
 
-def compose(letter_rows, name):
-    """Add *name*, reusing a matching accent and never cutting the letter."""
+def read_target(path):
+    """Return the rows already stored for an accented glyph, if any."""
+    if not os.path.exists(path):
+        return None
+    with open(path, encoding="utf-8") as handle:
+        return handle.read().rstrip("\n").split("\n")
+
+
+def compose(letter_rows, name, current_rows=None):
+    """Add *name*, keeping a deliberately reused accent and never cutting the letter."""
     _, side = ACCENTS[name]
     accent = accent_rows(name)
 
     if side == "above":
-        if existing_above_accent(letter_rows) == name:
+        already_reused = (current_rows == letter_rows
+                          and existing_above_accent(letter_rows) == name)
+        if already_reused:
             return letter_rows
         rows = accent + letter_rows
     else:
@@ -147,8 +158,10 @@ def write(code, variants):
 def main():
     for name, letters in COMPOSED.items():
         for letter, code in letters.items():
-            variants = {number: compose(rows, name)
-                        for number, rows in letter_variants(letter).items()}
+            variants = {}
+            for number, rows in letter_variants(letter).items():
+                path = os.path.join(DATA, str(code), f"{number}.txt")
+                variants[number] = compose(rows, name, read_target(path))
             write(code, variants)
     return 0
 
