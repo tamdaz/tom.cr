@@ -101,11 +101,12 @@ describe Tom::Fonts::Normal do
     Tom::Fonts::Normal::VARIANTS['Ó'][2].last(7).should eq(Tom::Fonts::Normal::VARIANTS['O'][2])
     Tom::Fonts::Normal::VARIANTS['Ó'][2].size.should eq(Tom::Fonts::Normal::HEIGHT + 2)
     Tom::Fonts::Normal::VARIANTS['Á'][3].last(7).should eq(Tom::Fonts::Normal::VARIANTS['A'][3])
+    Tom::Fonts::Normal::VARIANTS['Ô'][2].last(7).should eq(Tom::Fonts::Normal::VARIANTS['O'][2])
+    Tom::Fonts::Normal::VARIANTS['Ô'][2].size.should eq(Tom::Fonts::Normal::HEIGHT + 2)
   end
 
   it "reuses variants that already carry the matching accent" do
     Tom::Fonts::Normal::VARIANTS['Â'][3].should eq(Tom::Fonts::Normal::VARIANTS['A'][3])
-    Tom::Fonts::Normal::VARIANTS['Ô'][2].should eq(Tom::Fonts::Normal::VARIANTS['O'][2])
   end
 
   it "exposes alternate variants, always including variant 1" do
