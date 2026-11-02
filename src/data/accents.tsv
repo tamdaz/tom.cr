@@ -1,0 +1,22 @@
+# accent	side	accent_code	base_code	composed_code
+circumflex	above	94	65	194
+circumflex	above	94	69	202
+circumflex	above	94	73	206
+circumflex	above	94	79	212
+circumflex	above	94	85	219
+grave	above	96	65	192
+grave	above	96	69	200
+grave	above	96	73	204
+grave	above	96	79	210
+grave	above	96	85	217
+acute	above	180	65	193
+acute	above	180	69	201
+acute	above	180	73	205
+acute	above	180	79	211
+acute	above	180	85	218
+diaeresis	above	168	65	196
+diaeresis	above	168	69	203
+diaeresis	above	168	73	207
+diaeresis	above	168	79	214
+diaeresis	above	168	85	220
+cedilla	below	184	67	199

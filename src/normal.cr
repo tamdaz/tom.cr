@@ -6,29 +6,18 @@ module Tom::Fonts::Normal
   BLANK_WIDTH  = 10
   MAX_VARIANTS =  9
 
-  ACCENT_BASE = {
-    'À' => {'A', :above},
-    'Á' => {'A', :above},
-    'Â' => {'A', :above},
-    'Ä' => {'A', :above},
-    'Ç' => {'C', :below},
-    'È' => {'E', :above},
-    'É' => {'E', :above},
-    'Ê' => {'E', :above},
-    'Ë' => {'E', :above},
-    'Ì' => {'I', :above},
-    'Í' => {'I', :above},
-    'Î' => {'I', :above},
-    'Ï' => {'I', :above},
-    'Ò' => {'O', :above},
-    'Ó' => {'O', :above},
-    'Ô' => {'O', :above},
-    'Ö' => {'O', :above},
-    'Ù' => {'U', :above},
-    'Ú' => {'U', :above},
-    'Û' => {'U', :above},
-    'Ü' => {'U', :above},
-  }
+  # Accented characters described by the shared data/accents.tsv manifest:
+  # composed character => {base letter, side of the accent}.
+  ACCENT_BASE = {% begin %}
+    {
+    {% for line in read_file("#{__DIR__}/data/accents.tsv").split('\n') %}
+      {% fields = line.split('\t') %}
+      {% if fields.size == 5 && !fields[0].starts_with?("#") %}
+        {{ fields[4].to_i.chr }} => { {{ fields[3].to_i.chr }}, :{{ fields[1].id }} },
+      {% end %}
+    {% end %}
+    }
+  {% end %}
 
   BELOW_BASELINE = ACCENT_BASE.select do |character, (base, side)|
     side == :below

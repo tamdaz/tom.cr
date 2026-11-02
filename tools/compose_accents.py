@@ -21,55 +21,16 @@ import glob
 import os
 import sys
 
+from accents import load
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "src", "data")
 
 COLS, HALF_ROWS = 10, 7
 BLOCK, TOP, BOTTOM = "█", "▀", "▄"
 
-# Accent name -> (accent codepoint, side of the letter).
-ACCENTS = {
-    "circumflex": (0x005E, "above"),  # ^
-    "grave": (0x0060, "above"),       # `
-    "acute": (0x00B4, "above"),       # ´
-    "diaeresis": (0x00A8, "above"),   # ¨
-    "cedilla": (0x00B8, "below"),     # ¸
-}
-
-# Accent name -> {base letter: precomposed codepoint}.
-COMPOSED = {
-    "circumflex": {
-        "A": 0x00C2,  # Â
-        "E": 0x00CA,  # Ê
-        "I": 0x00CE,  # Î
-        "O": 0x00D4,  # Ô
-        "U": 0x00DB,  # Û
-    },
-    "grave": {
-        "A": 0x00C0,  # À
-        "E": 0x00C8,  # È
-        "I": 0x00CC,  # Ì
-        "O": 0x00D2,  # Ò
-        "U": 0x00D9,  # Ù
-    },
-    "acute": {
-        "A": 0x00C1,  # Á
-        "E": 0x00C9,  # É
-        "I": 0x00CD,  # Í
-        "O": 0x00D3,  # Ó
-        "U": 0x00DA,  # Ú
-    },
-    "diaeresis": {
-        "A": 0x00C4,  # Ä
-        "E": 0x00CB,  # Ë
-        "I": 0x00CF,  # Ï
-        "O": 0x00D6,  # Ö
-        "U": 0x00DC,  # Ü
-    },
-    "cedilla": {
-        "C": 0x00C7,  # Ç
-    },
-}
+# Accent name -> (accent codepoint, side), and accent name -> {base: composed}.
+ACCENTS, COMPOSED = load()
 
 
 def read_rows(path):

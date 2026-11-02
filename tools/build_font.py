@@ -20,6 +20,8 @@ import fontforge
 from fontTools.feaLib.builder import addOpenTypeFeaturesFromString
 from fontTools.ttLib import TTFont
 
+from accents import accent_base
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 PX = 100                   # font units per bitmap pixel
@@ -31,33 +33,12 @@ ASCENT = UPM + ACCENT_ROWS * 2 * PX  # 1800, letters stay 1400 tall
 DESCENT = ACCENT_ROWS * 2 * PX       # 400, room for the cedilla
 ADVANCE = (COLS + 2) * PX  # 10px glyph + 2px letter spacing
 
-# Accented codepoint -> (base letter, side of the accent). The accented variants
-# belong to the base letter's cv feature, so selecting "A Variants" also updates
-# all A accents and their lowercase forms. The side tells the outline builder
-# whether the extra two rows go above the letter or below it (the cedilla).
-ACCENT_BASE = {
-    0x00C0: (0x0041, "above"),  # À -> A
-    0x00C1: (0x0041, "above"),  # Á -> A
-    0x00C2: (0x0041, "above"),  # Â -> A
-    0x00C4: (0x0041, "above"),  # Ä -> A
-    0x00C7: (0x0043, "below"),  # Ç -> C
-    0x00C8: (0x0045, "above"),  # È -> E
-    0x00C9: (0x0045, "above"),  # É -> E
-    0x00CA: (0x0045, "above"),  # Ê -> E
-    0x00CB: (0x0045, "above"),  # Ë -> E
-    0x00CC: (0x0049, "above"),  # Ì -> I
-    0x00CD: (0x0049, "above"),  # Í -> I
-    0x00CE: (0x0049, "above"),  # Î -> I
-    0x00CF: (0x0049, "above"),  # Ï -> I
-    0x00D2: (0x004F, "above"),  # Ò -> O
-    0x00D3: (0x004F, "above"),  # Ó -> O
-    0x00D4: (0x004F, "above"),  # Ô -> O
-    0x00D6: (0x004F, "above"),  # Ö -> O
-    0x00D9: (0x0055, "above"),  # Ù -> U
-    0x00DA: (0x0055, "above"),  # Ú -> U
-    0x00DB: (0x0055, "above"),  # Û -> U
-    0x00DC: (0x0055, "above"),  # Ü -> U
-}
+# Accented codepoint -> (base letter, side of the accent), from the shared
+# accent manifest. The accented variants belong to the base letter's cv
+# feature, so selecting "A Variants" also updates all A accents and their
+# lowercase forms. The side tells the outline builder whether the extra two
+# rows go above the letter or below it (the cedilla).
+ACCENT_BASE = accent_base()
 
 # The cedilla is an accent like the others, but it sits below the letter.
 BELOW_BASELINE = {code for code, (_, side) in ACCENT_BASE.items() if side == "below"}
@@ -142,6 +123,25 @@ def collect(data):
 
 
 def build(data, out, family, lowercase):
+    font = new_font(family)
+    glyphs = collect(data)
+    names = add_default_glyphs(font, glyphs)
+
+    if lowercase:
+        add_lowercase_glyphs(font, glyphs, names)
+
+    alternates = add_alternates(font, glyphs, names)
+    features = collect_features(alternates)
+
+    clean_outlines(font)
+    generate_font(font, out, features)
+    tt = normalize_metrics(out)
+
+    return len(tt.getBestCmap()), len(features)
+
+
+def new_font(family):
+    """Create the FontForge font with the shared global metrics."""
     font = fontforge.font()
     font.em = UPM
     font.ascent = UPM
@@ -173,8 +173,12 @@ def build(data, out, family, lowercase):
     # U+0020 is absent from the art but the renderer gives it a full cell.
     font.createChar(0x20).width = ADVANCE
 
-    glyphs = collect(data)
-    names = {}      # codepoint -> default glyph name
+    return font
+
+
+def add_default_glyphs(font, glyphs):
+    """Draw variant 1 of every glyph and return {codepoint: glyph name}."""
+    names = {}  # codepoint -> default glyph name
 
     for code, designs in sorted(glyphs.items()):
         if 1 not in designs:
@@ -185,29 +189,42 @@ def build(data, out, family, lowercase):
         glyph.width = ADVANCE
         names[code] = glyph.glyphname
 
-    # The renderer upcases its input, so lowercase repeats the capitals. This
-    # covers ASCII and the accented Latin-1 letters (Â -> â, etc.).
-    if lowercase:
-        for code, name in list(names.items()):
-            lower = chr(code).lower()
-            if len(lower) != 1 or lower == chr(code):
-                continue
-            lower_code = ord(lower)
-            if lower_code in names:
-                continue
-            glyph = font.createChar(lower_code)
-            draw(glyph, glyphs[code][1], code in BELOW_BASELINE)
-            glyph.width = ADVANCE
-            names[lower_code] = glyph.glyphname
+    return names
 
-    # One cvXX feature per character, holding all of its alternate designs
-    # (variant 2, 3, 4, ...). The alternates are unencoded glyphs with
-    # predictable names so the feature file can reference them.
+
+def add_lowercase_glyphs(font, glyphs, names):
+    """Repeat the capitals as lowercase glyphs, mutating *names*.
+
+    The renderer upcases its input, so lowercase only needs to exist for
+    applications using the generated TTF directly. This covers ASCII and the
+    accented Latin-1 letters (Â -> â, etc.).
+    """
+    for code, _name in list(names.items()):
+        lower = chr(code).lower()
+        if len(lower) != 1 or lower == chr(code):
+            continue
+        lower_code = ord(lower)
+        if lower_code in names:
+            continue
+        glyph = font.createChar(lower_code)
+        draw(glyph, glyphs[code][1], code in BELOW_BASELINE)
+        glyph.width = ADVANCE
+        names[lower_code] = glyph.glyphname
+
+
+def add_alternates(font, glyphs, names):
+    """Create the unencoded alternate designs and return their metadata.
+
+    One cvXX feature per character holds all of its alternate designs (variant
+    2, 3, 4, ...). The alternates are unencoded glyphs with predictable names
+    so the feature file can reference them.
+    """
     alternates = {}  # codepoint -> (default glyph names, {variant: alternate name})
+
     for code, designs in sorted(glyphs.items()):
         if code not in names:
             continue
-            
+
         extra = [number for number in sorted(designs) if number != 1]
 
         if not extra:
@@ -227,10 +244,17 @@ def build(data, out, family, lowercase):
                 bases.append(names[lower_code])
         alternates[code] = (bases, variants)
 
-    # Group the accented characters into their base letter's feature. The
-    # variant numbers must line up so value 1 of "A Variants" picks Â's first
-    # alternate as well as A's.
+    return alternates
+
+
+def collect_features(alternates):
+    """Group the accented characters into their base letter's feature.
+
+    The variant numbers must line up so value 1 of "A Variants" picks Â's first
+    alternate as well as A's.
+    """
     features = {}  # base codepoint -> {glyph name: [alternate names, by variant]}
+
     for code, (bases, variants) in alternates.items():
         base = ACCENT_BASE.get(code, (code, "above"))[0]
         if base not in alternates:
@@ -246,10 +270,18 @@ def build(data, out, family, lowercase):
         for name in bases:
             slot[name] = [variants[number] for number in order]
 
+    return features
+
+
+def clean_outlines(font):
+    """Merge overlapping rectangles and normalise contour direction."""
     font.selection.all()
     font.removeOverlap()
     font.correctDirection()
 
+
+def generate_font(font, out, features):
+    """Generate the TTF, add its cvXX features, and save it."""
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     font.generate(out)
 
@@ -257,6 +289,9 @@ def build(data, out, family, lowercase):
     add_character_variants(tt, features)
     tt.save(out)
 
+
+def normalize_metrics(out):
+    """Normalise synthesised glyph widths and line metrics, then save."""
     # FontForge only synthesises .notdef/.null/nonmarkingreturn on export;
     # normalise them so the font is reported as fixed pitch.
     tt = TTFont(out)
@@ -279,7 +314,7 @@ def build(data, out, family, lowercase):
     tt["OS/2"].usWinDescent = DESCENT
     tt.save(out)
 
-    return len(tt.getBestCmap()), len(features)
+    return tt
 
 
 def add_character_variants(tt, features):
