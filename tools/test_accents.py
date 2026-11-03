@@ -16,7 +16,8 @@ class AccentsTest(unittest.TestCase):
         self.assertEqual(accents["circumflex"], (0x005E, "above"))
         self.assertEqual(accents["cedilla"], (0x00B8, "below"))
         self.assertEqual(composed["circumflex"]["A"], 0x00C2)
-        self.assertEqual(composed["cedilla"], {"C": 0x00C7})
+        self.assertEqual(composed["circumflex"]["a"], 0x00E2)
+        self.assertEqual(composed["cedilla"], {"C": 0x00C7, "c": 0x00E7})
 
     def test_accent_base_flattens_every_composed_character(self):
         _, composed = load()
@@ -25,6 +26,8 @@ class AccentsTest(unittest.TestCase):
         self.assertEqual(len(base), sum(len(letters) for letters in composed.values()))
         self.assertEqual(base[0x00C2], (0x0041, "above"))
         self.assertEqual(base[0x00C7], (0x0043, "below"))
+        self.assertEqual(base[0x00E2], (0x0061, "above"))
+        self.assertEqual(base[0x00E7], (0x0063, "below"))
 
 
 if __name__ == "__main__":

@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Build an outline TTF from the half-block glyph art in src/data.
 
-A glyph is a 10x7 grid of ▀ / ▄ / █ cells, i.e. a 10x14 bitmap. Accented
-glyphs are 10x9: two rows are added above an unchanged 10x7 letter, or below
-it for the cedilla. The bitmap is emitted as one rectangle per horizontal run,
-then the rectangles are merged, so the outlines are exact pixel edges: no
-autotracing, no wobble.
+A glyph is a 10x7 grid of ▀ / ▄ / █ cells, i.e. a 10x14 bitmap. Extra rows
+grow the grid: accented capitals use 10x9 (two rows added above an unchanged
+10x7 letter, or below for the cedilla). Lowercase letters keep the two rows
+above the x-height free for the accent (blank, or the dot on i), so an accented
+lowercase stays 10x7; only the lowercase cedilla adds rows below. Descenders
+such as p use the rows under the baseline for their tail. The bitmap
+is emitted as one rectangle per horizontal run, then the rectangles are merged,
+so the outlines are exact pixel edges: no autotracing, no wobble.
 
 Alternate designs (2.txt, 3.txt, ...) become unencoded glyphs wired to a cvXX
 character-variant feature per character, so they can be picked in any
@@ -20,66 +23,25 @@ import fontforge
 from fontTools.feaLib.builder import addOpenTypeFeaturesFromString
 from fontTools.ttLib import TTFont
 
-from accents import accent_base
+from glyphs import ACCENT_BASE, COLS, ROWS, delegated_lowercase, hangs_below, parse
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 PX = 100                   # font units per bitmap pixel
-COLS, HALF_ROWS = 10, 7
-ROWS = HALF_ROWS * 2       # a text row is two pixel rows
 UPM = ROWS * PX            # 1400
-ACCENT_ROWS = 2            # text rows reserved above/below accented glyphs
-ASCENT = UPM + ACCENT_ROWS * 2 * PX  # 1800, letters stay 1400 tall
-DESCENT = ACCENT_ROWS * 2 * PX       # 400, room for the cedilla
 ADVANCE = (COLS + 2) * PX  # 10px glyph + 2px letter spacing
 
-# Accented codepoint -> (base letter, side of the accent), from the shared
-# accent manifest. The accented variants belong to the base letter's cv
-# feature, so selecting "A Variants" also updates all A accents and their
-# lowercase forms. The side tells the outline builder whether the extra two
-# rows go above the letter or below it (the cedilla).
-ACCENT_BASE = accent_base()
 
-# The cedilla is an accent like the others, but it sits below the letter.
-BELOW_BASELINE = {code for code, (_, side) in ACCENT_BASE.items() if side == "below"}
-
-BLOCK, BLOCK_TOP, BLOCK_BOTTOM = "█", "▀", "▄"
-
-
-def parse(path):
-    """Return a matrix of 0/1 from one half-block art file.
-
-    Ordinary glyphs are 10x7. Accented glyphs are 10x9: the letter keeps its
-    10x7 form and two rows are added above it, or below it for the cedilla.
-    """
-    with open(path, encoding="utf-8") as handle:
-        lines = handle.read().rstrip("\n").split("\n")
-
-    allowed = (HALF_ROWS, HALF_ROWS + 2)
-
-    if len(lines) not in allowed or any(len(line) != COLS for line in lines):
-        raise SystemExit(f"{path}: expected a {COLS}x{HALF_ROWS} or {COLS}x{HALF_ROWS + 2} grid")
-
-    grid = [[0] * COLS for _ in range(len(lines) * 2)]
-
-    for r, line in enumerate(lines):
-        for c, char in enumerate(line):
-            if char in (BLOCK, BLOCK_TOP):
-                grid[r * 2][c] = 1
-            if char in (BLOCK, BLOCK_BOTTOM):
-                grid[r * 2 + 1][c] = 1
-    return grid
-
-
-def draw(glyph, grid, below=False):
+def draw(glyph, grid, code):
     """Add one rectangle per horizontal run of set pixels.
 
-    Row 0 is the top row. The bottom of the letter sits on the baseline (y=0),
-    except for below-baseline glyphs, whose last two text rows (the cedilla)
-    extend into negative coordinates.
+    Row 0 is the top row. The bottom of the 10x7 body sits on the baseline
+    (y=0). For below-baseline glyphs the baseline is fixed at the bottom of the
+    seventh text row, so rows past it extend into negative coordinates.
     """
 
     rows = len(grid)
+    below = hangs_below(code, grid)
     baseline = rows - 1 - (rows - ROWS if below else 0)
     pen = glyph.glyphPen()
 
@@ -122,6 +84,21 @@ def collect(data):
     return glyphs
 
 
+def vertical_metrics(glyphs):
+    """Return the ascent/descent (in font units) that every design needs."""
+    above = below = 0
+
+    for code, designs in glyphs.items():
+        for grid in designs.values():
+            extra = max(0, len(grid) - ROWS)
+            if hangs_below(code, grid):
+                below = max(below, extra)
+            else:
+                above = max(above, extra)
+
+    return UPM + above * PX, below * PX
+
+
 def build(data, out, family, lowercase):
     font = new_font(family)
     glyphs = collect(data)
@@ -133,9 +110,11 @@ def build(data, out, family, lowercase):
     alternates = add_alternates(font, glyphs, names)
     features = collect_features(alternates)
 
+    ascent, descent = vertical_metrics(glyphs)
+
     clean_outlines(font)
     generate_font(font, out, features)
-    tt = normalize_metrics(out)
+    tt = normalize_metrics(out, ascent, descent)
 
     return len(tt.getBestCmap()), len(features)
 
@@ -185,7 +164,7 @@ def add_default_glyphs(font, glyphs):
             continue
 
         glyph = font.createChar(code)
-        draw(glyph, designs[1], code in BELOW_BASELINE)
+        draw(glyph, designs[1], code)
         glyph.width = ADVANCE
         names[code] = glyph.glyphname
 
@@ -207,7 +186,7 @@ def add_lowercase_glyphs(font, glyphs, names):
         if lower_code in names:
             continue
         glyph = font.createChar(lower_code)
-        draw(glyph, glyphs[code][1], code in BELOW_BASELINE)
+        draw(glyph, glyphs[code][1], code)
         glyph.width = ADVANCE
         names[lower_code] = glyph.glyphname
 
@@ -232,16 +211,16 @@ def add_alternates(font, glyphs, names):
         variants = {}
         for number in extra:
             alternate = font.createChar(-1, f"{names[code]}.alt{number}")
-            draw(alternate, designs[number], code in BELOW_BASELINE)
+            draw(alternate, designs[number], code)
             alternate.width = ADVANCE
             variants[number] = alternate.glyphname
-        # Lowercase delegates to the same alternates (a, â, ç, ...).
+        # Lowercase letters with their own art get their own cv feature; only
+        # the accented lowercase forms, which are copied from the capital,
+        # follow the capital's variants.
         bases = [names[code]]
-        lower = chr(code).lower()
-        if len(lower) == 1 and lower != chr(code):
-            lower_code = ord(lower)
-            if lower_code in names:
-                bases.append(names[lower_code])
+        lower_code = delegated_lowercase(code, glyphs)
+        if lower_code is not None and lower_code in names:
+            bases.append(names[lower_code])
         alternates[code] = (bases, variants)
 
     return alternates
@@ -290,7 +269,7 @@ def generate_font(font, out, features):
     tt.save(out)
 
 
-def normalize_metrics(out):
+def normalize_metrics(out, ascent, descent):
     """Normalise synthesised glyph widths and line metrics, then save."""
     # FontForge only synthesises .notdef/.null/nonmarkingreturn on export;
     # normalise them so the font is reported as fixed pitch.
@@ -300,18 +279,17 @@ def normalize_metrics(out):
     tt["hhea"].advanceWidthMax = ADVANCE
     tt["post"].isFixedPitch = 1
 
-    # Accented glyphs add two text rows above the 10x7 letter, or below it for
-    # the cedilla. Keep the em (and so the pixel size) at UPM, but grow the line
-    # box to ASCENT/DESCENT so accents are not clipped. FontForge cannot express
-    # an ascent above the em.
-    tt["hhea"].ascent = ASCENT
-    tt["hhea"].descent = -DESCENT
+    # Keep the em (and so the pixel size) at UPM, but grow the line box so
+    # accents and descenders are not clipped. FontForge cannot express an
+    # ascent above the em, so these metrics are written after generation.
+    tt["hhea"].ascent = ascent
+    tt["hhea"].descent = -descent
     tt["hhea"].lineGap = 0
-    tt["OS/2"].sTypoAscender = ASCENT
-    tt["OS/2"].sTypoDescender = -DESCENT
+    tt["OS/2"].sTypoAscender = ascent
+    tt["OS/2"].sTypoDescender = -descent
     tt["OS/2"].sTypoLineGap = 0
-    tt["OS/2"].usWinAscent = ASCENT
-    tt["OS/2"].usWinDescent = DESCENT
+    tt["OS/2"].usWinAscent = ascent
+    tt["OS/2"].usWinDescent = descent
     tt.save(out)
 
     return tt

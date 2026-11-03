@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 """Compose accented glyphs from the accent art and the base letter variants.
 
-Accented glyphs are 10x9: the base letter keeps its original 10x7 grid, and two
-rows are added for the accent. Accents above the letter use the first two rows
-of ASCII 94 (`^`), ASCII 96 (`` ` ``), U+00B4 (`´`) or U+00A8 (`¨`); the cedilla
-uses the last two rows of U+00B8 (`¸`) and sits below the letter.
+Accented uppercase glyphs are 10x9: the base letter keeps its original 10x7
+grid, and two rows are added for the accent. Accents above the letter use the
+first two rows of ASCII 94 (`^`), ASCII 96 (`` ` ``), U+00B4 (`´`) or U+00A8
+(`¨`); the cedilla uses the last two rows of U+00B8 (`¸`) and sits below the
+letter.
+
+Lowercase art keeps at most two rows above the x-height — blank, or the dot on
+`i` — and accents fill that zone instead of making the glyph taller, so an
+accented lowercase stays 10x7. The lowercase cedilla still appends its two rows
+below.
 
 Every variant of a base letter produces the matching variant of its accented
 form (A variant 2 -> Â variant 2), so accents follow the letter designs. A
@@ -14,8 +20,6 @@ accent is added above the complete variant. Some letter designs start with rows
 that look like an accent (A3, O2), but those rows belong to the letter unless
 the stored variant deliberately reuses them. The results are written to
 `src/data/<codepoint>/<variant>.txt`, next to the hand-drawn glyph art.
-Lowercase forms are not written: the renderer uppercases its input, and the TTF
-build maps each accented capital to its lowercase counterpart.
 """
 import glob
 import os
@@ -87,12 +91,16 @@ def read_target(path):
         return handle.read().rstrip("\n").split("\n")
 
 
-def compose(letter_rows, name, current_rows=None):
+def compose(letter_rows, name, current_rows=None, lowercase=False):
     """Add *name*, keeping a deliberately reused accent and never cutting the letter."""
     _, side = ACCENTS[name]
     accent = accent_rows(name)
 
-    if side == "above":
+    if side == "above" and lowercase:
+        # Lowercase art keeps at most two rows above the x-height (blank, or the
+        # dot on i). Put the accent there instead of stacking it on top.
+        rows = accent + letter_rows[2:]
+    elif side == "above":
         already_reused = (current_rows == letter_rows
                           and existing_above_accent(letter_rows) == name)
         if already_reused:
@@ -101,8 +109,9 @@ def compose(letter_rows, name, current_rows=None):
     else:
         rows = letter_rows + accent
 
-    if len(rows) != HALF_ROWS + 2:
-        raise SystemExit(f"composed {len(rows)} rows, expected {HALF_ROWS + 2}")
+    expected = HALF_ROWS if side == "above" and lowercase else HALF_ROWS + 2
+    if len(rows) != expected:
+        raise SystemExit(f"composed {len(rows)} rows, expected {expected}")
     return rows
 
 
@@ -122,7 +131,8 @@ def main():
             variants = {}
             for number, rows in letter_variants(letter).items():
                 path = os.path.join(DATA, str(code), f"{number}.txt")
-                variants[number] = compose(rows, name, read_target(path))
+                variants[number] = compose(
+                    rows, name, read_target(path), lowercase=letter.islower())
             write(code, variants)
     return 0
 
