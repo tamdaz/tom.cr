@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  schedule:
+    - cron: '0 6 * * 6'
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+          - os: ubuntu-latest
+            crystal: nightly
+          - os: macos-latest
+
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.crystal == 'nightly' }}
+    steps:
+      - name: Download source
+        uses: actions/checkout@v6
+      - name: Install Crystal
+        uses: crystal-lang/install-crystal@v1
+        with:
+          crystal: ${{ matrix.crystal }}
+      - name: Install shards
+        run: shards install
+      - name: Run tests
+        run: crystal spec --order=random
+      - name: Test accent manifest
+        run: python3 tools/test_accents.py
+      - name: Test accent composition
+        run: python3 tools/test_compose.py
+      - name: Test glyph format
+        run: python3 tools/test_glyphs.py
+      - name: Build
+        run: shards build
+      - name: Check formatting
+        run: crystal tool format; git diff --exit-code
+        if: matrix.crystal != 'nightly' && matrix.os == 'ubuntu-latest'
+
+  font:
+    name: Build TTF
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download source
+        uses: actions/checkout@v6
+      - name: Install font build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            fontforge python3-fontforge python3-fonttools
+      - name: Build TTF
+        run: /usr/bin/python3 tools/build_font.py
+      - name: Upload TTF
+        uses: actions/upload-artifact@v4
+        with:
+          name: tom-font
+          path: dist/TomMono-Regular.ttf
+          if-no-files-found: error
+          retention-days: 7
