@@ -31,6 +31,10 @@ jobs:
         run: crystal spec --order=random
       - name: Test accent manifest
         run: python3 tools/test_accents.py
+      - name: Test accent composition
+        run: python3 tools/test_compose.py
+      - name: Test glyph format
+        run: python3 tools/test_glyphs.py
       - name: Build
         run: shards build
       - name: Check formatting
