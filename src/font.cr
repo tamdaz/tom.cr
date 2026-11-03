@@ -9,15 +9,17 @@ module Tom::Font
   # Blank pixel columns inserted between two adjacent glyphs.
   LETTER_SPACING = 2
 
-  # Renders *text* using *variants*, uppercasing input, filling spaces with
-  # *blank_width* empty columns, and silently skipping unsupported characters.
+  # Renders *text* using *variants*, filling spaces with *blank_width* empty
+  # columns, and silently skipping unsupported characters. Each character is
+  # drawn with its own glyph, so uppercase and lowercase stay distinct.
   #
   # Glyphs are laid out as pixels and only encoded to characters at the very
   # end, so spacing stays the same width on screen in every style even though
   # cells cover a different number of pixels.
   #
-  # Characters in *below_baseline* extend under the shared baseline (the
-  # cedilla); every other taller glyph extends above it (accented capitals).
+  # Characters in *below_baseline* extend under the shared baseline (descenders
+  # and the cedilla); every other taller glyph extends above it (accented
+  # capitals).
   #
   # Spacing is rounded up to a whole number of cells: a glyph starting halfway
   # through a cell would be sampled across two of them and come out distorted.
@@ -30,7 +32,7 @@ module Tom::Font
     glyphs = [] of Bitmap
     below = [] of Bool
 
-    text.upcase.each_char do |char|
+    text.each_char do |char|
       if char == ' '
         glyphs << Bitmap.new(align_up(blank_width, style.cell_width), height * 2)
         below << false
@@ -52,9 +54,9 @@ module Tom::Font
   end
 
   # Lays *glyphs* out left to right, separated by *spacing* blank columns.
-  # Glyphs may be taller than *height* (accented letters add two text rows), so
-  # the strip grows and every glyph is aligned on the shared baseline: glyphs
-  # flagged in *below* hang under it, the others sit on it.
+  # Glyphs may be taller than *height*: accented capitals add two rows above the
+  # baseline, while the cedilla and descenders add rows below it. Flagged glyphs
+  # hang under the shared baseline; the others sit on it.
   private def self.compose(glyphs : Array(Bitmap), below : Array(Bool), height : Int32, spacing : Int32) : Bitmap
     if glyphs.empty?
       return Bitmap.new(0, height)

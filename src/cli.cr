@@ -10,10 +10,10 @@ module Tom::CLI
     spec.split(',').each do |pair|
       letter, sep, number = pair.partition(':')
       if sep.empty? || letter.size != 1 || number.empty? || !number.each_char.all?(&.ascii_number?)
-        raise ArgumentError.new("Invalid --variant value #{pair.inspect} (expected LETTER:N, e.g. S:2)")
+        raise ArgumentError.new("Invalid --variant value #{pair.inspect} (expected LETTER:N, e.g. S:2 or s:2)")
       end
 
-      overrides[letter[0].upcase] = number.to_i
+      overrides[letter[0]] = number.to_i
     end
 
     overrides
@@ -36,7 +36,7 @@ module Tom::CLI
         style_name = name
       end
 
-      parser.on("-v LETTER:N,...", "--variant=LETTER:N,...", "Use glyph variant N for a given letter, e.g. S:2 (repeatable)") do |spec|
+      parser.on("-v LETTER:N,...", "--variant=LETTER:N,...", "Use glyph variant N for a given letter, e.g. S:2 or s:2 (case-sensitive, repeatable)") do |spec|
         begin
           variant_overrides.merge!(parse_variants(spec))
         rescue ex : ArgumentError

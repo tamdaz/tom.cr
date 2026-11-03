@@ -19,9 +19,14 @@ module Tom::Fonts::Normal
     }
   {% end %}
 
-  BELOW_BASELINE = ACCENT_BASE.select do |character, (base, side)|
-    side == :below
-  end
+  # Lowercase letters whose tail hangs under the baseline. The glyph art for
+  # these uses the two rows after the 7-row body. Keep in sync with DESCENDERS
+  # in tools/glyphs.py.
+  DESCENDERS = "gjpqy".chars
+
+  BELOW_BASELINE = ACCENT_BASE
+    .select { |_, (_, side)| side == :below }
+    .keys + DESCENDERS
 
   VARIANTS = begin
     variants = Tom::Variants.new
@@ -64,6 +69,6 @@ module Tom::Fonts::Normal
       end
     end
 
-    Tom::Font.render(text, VARIANTS, HEIGHT, BLANK_WIDTH, effective, style, BELOW_BASELINE.keys)
+    Tom::Font.render(text, VARIANTS, HEIGHT, BLANK_WIDTH, effective, style, BELOW_BASELINE)
   end
 end
