@@ -60,10 +60,3 @@ jobs:
             fontforge python3-fontforge python3-fonttools
       - name: Build TTF
         run: /usr/bin/python3 tools/build_font.py
-      - name: Upload TTF
-        uses: actions/upload-artifact@v4
-        with:
-          name: tom-font
-          path: dist/TomMono-Regular.ttf
-          if-no-files-found: error
-          retention-days: 7
