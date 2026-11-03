@@ -10,8 +10,9 @@ describe Tom::CLI do
       Tom::CLI.parse_variants("A:2,G:4").should eq({'A' => 2, 'G' => 4})
     end
 
-    it "upcases the letter" do
-      Tom::CLI.parse_variants("s:2").should eq({'S' => 2})
+    it "keeps the letter's case" do
+      Tom::CLI.parse_variants("s:2").should eq({'s' => 2})
+      Tom::CLI.parse_variants("S:2").should eq({'S' => 2})
     end
 
     it "rejects malformed values" do

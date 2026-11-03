@@ -22,40 +22,48 @@ describe Tom::Fonts::Normal do
   end
 
   it "covers the circumflex capitals and their lowercase forms" do
-    "ÂÊÎÔÛ".each_char do |letter|
+    "ÂÊÎÔÛâêîôû".each_char do |letter|
       Tom::Fonts::Normal::GLYPHS[letter]?.should_not be_nil
     end
 
-    Tom::Fonts::Normal.render("âêîôû").should eq(Tom::Fonts::Normal.render("ÂÊÎÔÛ"))
+    Tom::Fonts::Normal.render("âêîôû").split('\n').size.should eq(Tom::Fonts::Normal::HEIGHT)
+    Tom::Fonts::Normal.render("â").should_not eq(Tom::Fonts::Normal.render("Â"))
   end
 
   it "covers the grave capitals and their lowercase forms" do
-    "ÀÈÌÒÙ".each_char do |letter|
+    "ÀÈÌÒÙàèìòù".each_char do |letter|
       Tom::Fonts::Normal::GLYPHS[letter]?.should_not be_nil
     end
 
-    Tom::Fonts::Normal.render("àèìòù").should eq(Tom::Fonts::Normal.render("ÀÈÌÒÙ"))
+    Tom::Fonts::Normal.render("àèìòù").split('\n').size.should eq(Tom::Fonts::Normal::HEIGHT)
+    Tom::Fonts::Normal.render("à").should_not eq(Tom::Fonts::Normal.render("À"))
   end
 
   it "covers the acute capitals and their lowercase forms" do
-    "ÁÉÍÓÚ".each_char do |letter|
+    "ÁÉÍÓÚáéíóú".each_char do |letter|
       Tom::Fonts::Normal::GLYPHS[letter]?.should_not be_nil
     end
 
-    Tom::Fonts::Normal.render("áéíóú").should eq(Tom::Fonts::Normal.render("ÁÉÍÓÚ"))
+    Tom::Fonts::Normal.render("áéíóú").split('\n').size.should eq(Tom::Fonts::Normal::HEIGHT)
+    Tom::Fonts::Normal.render("á").should_not eq(Tom::Fonts::Normal.render("Á"))
   end
 
   it "covers the diaeresis capitals and their lowercase forms" do
-    "ÄËÏÖÜ".each_char do |letter|
+    "ÄËÏÖÜäëïöü".each_char do |letter|
       Tom::Fonts::Normal::GLYPHS[letter]?.should_not be_nil
     end
 
-    Tom::Fonts::Normal.render("äëïöü").should eq(Tom::Fonts::Normal.render("ÄËÏÖÜ"))
+    Tom::Fonts::Normal.render("äëïöü").split('\n').size.should eq(Tom::Fonts::Normal::HEIGHT)
+    Tom::Fonts::Normal.render("ä").should_not eq(Tom::Fonts::Normal.render("Ä"))
   end
 
   it "covers the cedilla capital and its lowercase form" do
-    Tom::Fonts::Normal::GLYPHS['Ç']?.should_not be_nil
-    Tom::Fonts::Normal.render("ç").should eq(Tom::Fonts::Normal.render("Ç"))
+    "Çç".each_char do |letter|
+      Tom::Fonts::Normal::GLYPHS[letter]?.should_not be_nil
+    end
+
+    Tom::Fonts::Normal.render("ç").split('\n').size.should eq(Tom::Fonts::Normal::HEIGHT + 2)
+    Tom::Fonts::Normal.render("ç").should_not eq(Tom::Fonts::Normal.render("Ç"))
   end
 
   it "adds two rows above accented glyphs without changing the letter" do
@@ -63,6 +71,17 @@ describe Tom::Fonts::Normal do
     Tom::Fonts::Normal::GLYPHS['Â'].last(7).should eq(Tom::Fonts::Normal::GLYPHS['A'])
     Tom::Fonts::Normal.render("Â").split('\n').size.should eq(Tom::Fonts::Normal::HEIGHT + 2)
     Tom::Fonts::Normal.render("A").split('\n').size.should eq(Tom::Fonts::Normal::HEIGHT)
+  end
+
+  it "fits lowercase accents in the blank rows above the x-height" do
+    accent = Tom::Fonts::Normal::VARIANTS['â'][1]
+    letter = Tom::Fonts::Normal::VARIANTS['a'][1]
+
+    accent.size.should eq(Tom::Fonts::Normal::HEIGHT)
+    accent.first(2).should eq(Tom::Fonts::Normal::VARIANTS['^'][1].first(2))
+    accent.last(5).should eq(letter.last(5))
+
+    Tom::Fonts::Normal::VARIANTS['ç'][1].size.should eq(Tom::Fonts::Normal::HEIGHT + 2)
   end
 
   it "adds two rows below the cedilla without changing the letter" do
@@ -85,6 +104,11 @@ describe Tom::Fonts::Normal do
         if side == :below
           variant.size.should eq(Tom::Fonts::Normal::HEIGHT + 2)
           variant.first(7).should eq(letter)
+        elsif base.lowercase?
+          # Lowercase accents fill the blank rows above the x-height instead of
+          # making the glyph taller.
+          variant.size.should eq(Tom::Fonts::Normal::HEIGHT)
+          variant.last(5).should eq(letter.last(5))
         elsif variant.size == Tom::Fonts::Normal::HEIGHT
           # The variant already carries the matching accent, so it is reused
           # unchanged instead of stacking a second one.
@@ -133,8 +157,10 @@ describe Tom::Font do
     Tom::Fonts::Normal.render("A.B").should eq(Tom::Fonts::Normal.render("A.B"))
   end
 
-  it "is case-insensitive" do
-    Tom::Fonts::Normal.render("hi").should eq(Tom::Fonts::Normal.render("HI"))
+  it "renders lowercase with its own glyphs" do
+    Tom::Fonts::Normal.render("hi").should_not eq(Tom::Fonts::Normal.render("HI"))
+    Tom::Fonts::Normal.render("a").should eq(Tom::Fonts::Normal::VARIANTS['a'][1].join('\n'))
+    Tom::Fonts::Normal.render("â").should eq(Tom::Fonts::Normal::VARIANTS['â'][1].join('\n'))
   end
 
   it "lets the cedilla hang below the baseline" do
@@ -144,9 +170,25 @@ describe Tom::Font do
     rendered.split('\n').first(7).should eq(Tom::Fonts::Normal.render("C").split('\n'))
   end
 
+  it "lets lowercase descenders hang below the baseline" do
+    "gjpqy".each_char do |letter|
+      rendered = Tom::Fonts::Normal.render(letter.to_s)
+
+      rendered.split('\n').size.should eq(Tom::Fonts::Normal::HEIGHT + 2)
+      rendered.should eq(Tom::Fonts::Normal::VARIANTS[letter][1].join('\n'))
+    end
+  end
+
   it "keeps letters aligned when accents grow the output" do
     Tom::Fonts::Normal.render("AÇ").split('\n').first(7).should eq(Tom::Fonts::Normal.render("AC").split('\n'))
     Tom::Fonts::Normal.render("AÇÂ").split('\n').size.should eq(Tom::Fonts::Normal::HEIGHT + 4)
+  end
+
+  it "aligns accents and lowercase descenders on one baseline" do
+    rendered = Tom::Fonts::Normal.render("Âg")
+
+    rendered.split('\n').size.should eq(Tom::Fonts::Normal::HEIGHT + 4)
+    rendered.split('\n').last(2).should eq(Tom::Fonts::Normal.render(" g").split('\n').last(2))
   end
 
   it "renders text with no drawable characters as blank rows" do
@@ -171,6 +213,7 @@ describe Tom::Font do
     by_letter.should eq(by_accent)
     by_letter.should_not eq(default)
     Tom::Fonts::Normal.render("Ç", {'C' => 2}).should eq(Tom::Fonts::Normal.render("Ç", {'Ç' => 2}))
+    Tom::Fonts::Normal.render("â", {'a' => 2}).should eq(Tom::Fonts::Normal.render("â", {'â' => 2}))
   end
 
   it "lets an explicit accented variant win over the base letter's" do
